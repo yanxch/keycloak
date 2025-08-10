@@ -219,6 +219,8 @@ public class Messages {
 
     public static final String CONFIRM_EMAIL_ADDRESS_VERIFICATION = "confirmEmailAddressVerification";
 
+    public static final String CONFIRM_EMAIL_ADDRESS_VERIFICATION_BODY = "confirmEmailAddressVerificationBody";
+
     public static final String CONFIRM_EXECUTION_OF_ACTIONS = "confirmExecutionOfActions";
 
     public static final String STALE_CODE = "staleCodeMessage";

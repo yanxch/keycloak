@@ -99,9 +99,11 @@ public class VerifyEmailActionTokenHandler extends AbstractActionTokenHandler<Ve
                     authSession.getClient().getClientId(), authSession.getTabId(), AuthenticationProcessor.getClientData(session, authSession));
             String confirmUri = builder.build(realm.getName()).toString();
 
-            return session.getProvider(LoginFormsProvider.class)
+            LoginFormsProvider forms = session.getProvider(LoginFormsProvider.class);
+            return forms
                     .setAuthenticationSession(authSession)
-                    .setSuccess(Messages.CONFIRM_EMAIL_ADDRESS_VERIFICATION, user.getEmail())
+                    .setAttribute("messageHeader", forms.getMessage(Messages.CONFIRM_EMAIL_ADDRESS_VERIFICATION, user.getEmail()))
+                    .setSuccess(Messages.CONFIRM_EMAIL_ADDRESS_VERIFICATION_BODY, user.getEmail())
                     .setAttribute(Constants.TEMPLATE_ATTR_ACTION_URI, confirmUri)
                     .setUser(user)
                     .createInfoPage();
