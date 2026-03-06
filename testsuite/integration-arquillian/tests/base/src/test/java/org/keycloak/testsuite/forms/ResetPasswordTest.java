@@ -102,6 +102,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.endsWith;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 /**
  * @author <a href="mailto:sthorger@redhat.com">Stian Thorgersen</a>
@@ -388,6 +389,57 @@ public class ResetPasswordTest extends AbstractTestRealmKeycloakTest {
         // check with false the session is maintained
         configureForceLogin(Boolean.FALSE.toString());
         resetPassword("login-test", "resetPassword", false);
+    }
+
+    @Test
+    public void resetPasswordWithEmailThemeFromRealm() throws IOException {
+        // given
+        var username = "login-test";
+        var email = "login@test.com";
+
+        // when
+        initiateResetPasswordFromResetPasswordPage(username);
+
+        // then
+        events.expectRequiredAction(EventType.SEND_RESET_PASSWORD)
+                .user(userId)
+                .detail(Details.USERNAME, username.trim())
+                .detail(Details.EMAIL, email)
+                .session((String)null)
+                .assertEvent();
+
+        assertEquals(expectedMessagesCount, greenMail.getReceivedMessages().length);
+
+        MimeMessage message = greenMail.getReceivedMessages()[greenMail.getReceivedMessages().length - 1];
+        String text = MailUtils.getBodyAsText(message);
+
+        boolean containsText = text.contains("Someone just requested to change your Test account's credentials.");
+        assertTrue("base theme does not contain expected text", containsText);
+    }
+
+    @Test
+    public void resetPasswordWithEmailThemeFromClient() throws IOException {
+        try(ClientAttributeUpdater cau = ClientAttributeUpdater
+                .forClient(adminClient, "test", "test-app")
+                .setAttribute("email_theme", "custom-mail-theme")
+                .update()) {
+
+            initiateResetPasswordFromResetPasswordPage("login-test");
+
+            events.expectRequiredAction(EventType.SEND_RESET_PASSWORD)
+                    .user(userId)
+                    .detail(Details.USERNAME, "login-test")
+                    .detail(Details.EMAIL, "login@test.com")
+                    .session((String) null)
+                    .assertEvent();
+
+            assertEquals(expectedMessagesCount, greenMail.getReceivedMessages().length);
+
+            MimeMessage message = greenMail.getReceivedMessages()[greenMail.getReceivedMessages().length - 1];
+            String text = MailUtils.getBodyAsText(message);
+
+            assertEquals("Custom Mail Text", text);
+        }
     }
 
     @Test

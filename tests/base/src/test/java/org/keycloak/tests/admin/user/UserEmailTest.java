@@ -15,6 +15,8 @@ import jakarta.mail.internet.MimeMessage;
 import jakarta.ws.rs.ClientErrorException;
 import jakarta.ws.rs.core.Response;
 
+import org.junit.Assert;
+
 import org.keycloak.TokenVerifier;
 import org.keycloak.admin.client.resource.RealmResource;
 import org.keycloak.admin.client.resource.UserResource;
@@ -207,6 +209,7 @@ public class UserEmailTest extends AbstractUserTest {
         errorPage.assertCurrent();
     }
 
+    // LIKE THIS ONE
     @Test
     public void sendResetPasswordEmailSuccessWithAccountClientDisabled() throws IOException {
         ClientRepresentation clientRepresentation = managedRealm.admin().clients().findByClientId(Constants.ACCOUNT_MANAGEMENT_CLIENT_ID).get(0);
@@ -249,6 +252,36 @@ public class UserEmailTest extends AbstractUserTest {
         clientRepresentation.setEnabled(true);
         managedRealm.admin().clients().get(clientRepresentation.getId()).update(clientRepresentation);
         AdminEventAssertion.assertEvent(adminEvents.poll(), OperationType.UPDATE, AdminEventPaths.clientResourcePath(clientRepresentation.getId()), clientRepresentation, ResourceType.CLIENT);
+    }
+
+    @Test
+    public void sendResetPasswordEmailWithMailThemeFromClient() throws IOException {
+        ClientRepresentation clientRepresentation = managedRealm.admin().clients().findByClientId(Constants.ACCOUNT_MANAGEMENT_CLIENT_ID).get(0);
+        clientRepresentation.getAttributes().put("email_theme", "custom-mail-theme");
+        managedRealm.admin().clients().get(clientRepresentation.getId()).update(clientRepresentation);
+        AdminEventAssertion.assertEvent(adminEvents.poll(), OperationType.UPDATE, AdminEventPaths.clientResourcePath(clientRepresentation.getId()), clientRepresentation, ResourceType.CLIENT);
+
+        UserRepresentation userRep = new UserRepresentation();
+        userRep.setEnabled(true);
+        userRep.setUsername("user123");
+        userRep.setEmail("user123@test.com");
+        String id = createUser(userRep);
+
+        UserResource user = managedRealm.admin().users().get(id);
+        List<String> actions = new LinkedList<>();
+        actions.add(UserModel.RequiredAction.UPDATE_PASSWORD.name());
+        user.executeActionsEmail(Constants.ACCOUNT_MANAGEMENT_CLIENT_ID, null, actions);
+
+        AdminEventAssertion.assertEvent(adminEvents.poll(), OperationType.ACTION, AdminEventPaths.userResourcePath(id) + "/execute-actions-email", ResourceType.USER);
+        Assertions.assertEquals(1, mailServer.getReceivedMessages().length);
+        MimeMessage message = mailServer.getReceivedMessages()[0];
+        MailUtils.EmailBody body = MailUtils.getBody(message);
+
+        Assert.assertEquals("Custom Mail Text", body.getText());
+
+        assertTrue(body.getText().contains("Custom Mail Text"));
+        clientRepresentation.getAttributes().put("email_theme", "");
+        managedRealm.admin().clients().get(clientRepresentation.getId()).update(clientRepresentation);
     }
 
     @Test

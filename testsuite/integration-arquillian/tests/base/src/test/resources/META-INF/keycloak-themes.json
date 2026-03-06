@@ -18,6 +18,12 @@
       "types": [
         "account"
       ]
+    },
+    {
+      "name": "custom-mail-theme",
+      "types": [
+        "email"
+      ]
     }
   ]
 }

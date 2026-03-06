@@ -1,0 +1,6 @@
+PUT http://localhost:8080/admin/realms/test/users/70889600-7761-4079-bdfc-182c310a119d/execute-actions-email?client_id=security-admin-console
+Authorization: Bearer {{accesstoken}}
+
+[
+  "VERIFY_EMAIL"
+]

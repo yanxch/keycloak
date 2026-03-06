@@ -52,6 +52,7 @@ import org.keycloak.testsuite.pages.LoginPage;
 import org.keycloak.testsuite.pages.LoginPasswordResetPage;
 import org.keycloak.testsuite.pages.RegisterPage;
 import org.keycloak.testsuite.pages.VerifyEmailPage;
+import org.keycloak.testsuite.updaters.ClientAttributeUpdater;
 import org.keycloak.testsuite.updaters.RealmAttributeUpdater;
 import org.keycloak.testsuite.util.AccountHelper;
 import org.keycloak.testsuite.util.FlowUtil;
@@ -516,6 +517,41 @@ public class RegisterTest extends AbstractTestRealmKeycloakTest {
 
             // test that timestamp is current with 10s tollerance
             // test user info is set from form
+        }
+    }
+
+    @Test
+    public void registerUserSuccessWithEmailThemeFromClient() throws Exception {
+        try (
+                RealmAttributeUpdater rau = setVerifyEmail(true).update();
+                ClientAttributeUpdater cau =
+                        ClientAttributeUpdater
+                                .forClient(adminClient, "test", "test-app")
+                                .setAttribute("email_theme", "custom-mail-theme")
+                                .update()
+        ) {
+            loginPage.open();
+            loginPage.clickRegister();
+            registerPage.assertCurrent();
+
+            registerPage.register("firstName", "lastName", "registerUserSuccessWithEmailThemeFromClient@email", "registerUserSuccessWithEmailThemeFromClient", generatePassword());
+            verifyEmailPage.assertCurrent();
+
+            String userId = events.expectRegister("registerUserSuccessWithEmailThemeFromClient", "registerUserSuccessWithEmailThemeFromClient@email").assertEvent().getUserId();
+
+            {
+                assertTrue("Expecting verify email", greenMail.waitForIncomingEmail(1000, 1));
+
+                events.expect(EventType.SEND_VERIFY_EMAIL)
+                        .detail(Details.EMAIL, "registerUserSuccessWithEmailThemeFromClient@email".toLowerCase())
+                        .user(userId)
+                        .assertEvent();
+
+                MimeMessage message = greenMail.getLastReceivedMessage();
+                String text = MailUtils.getBodyAsText(message);
+
+                assertEquals("Custom Mail Text", text);
+            }
         }
     }
 

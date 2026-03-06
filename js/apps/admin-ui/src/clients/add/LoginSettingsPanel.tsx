@@ -12,6 +12,7 @@ export const LoginSettingsPanel = ({ access }: { access?: boolean }) => {
   const { watch } = useFormContext<FormFields>();
 
   const loginThemes = useServerInfo().themes!["login"];
+  const emailThemes = useServerInfo().themes!["email"];
   const consentRequired = watch("consentRequired");
   const displayOnConsentScreen: string = watch(
     convertAttributeNameToForm<FormFields>(
@@ -33,6 +34,18 @@ export const LoginSettingsPanel = ({ access }: { access?: boolean }) => {
           ...loginThemes.map(({ name }) => ({ key: name, value: name })),
         ]}
       />
+    <SelectControl
+        name="attributes.email_theme"
+        label={t("emailTheme")}
+        labelIcon={t("emailThemeHelp")}
+        controller={{
+            defaultValue: "",
+        }}
+        options={[
+            { key: "", value: t("choose") },
+            ...emailThemes.map(({ name }) => ({ key: name, value: name })),
+        ]}
+    />
       <DefaultSwitchControl
         name="consentRequired"
         label={t("consentRequired")}

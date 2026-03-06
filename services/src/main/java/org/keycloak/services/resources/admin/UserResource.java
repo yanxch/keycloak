@@ -1031,17 +1031,19 @@ public class UserResource {
         }
 
         int expiration = Time.currentTime() + result.lifespan;
-        ExecuteActionsActionToken token = new ExecuteActionsActionToken(user.getId(), user.getEmail(), expiration, actions, result.redirectUri, result.clientId);
+        ExecuteActionsActionToken token = new ExecuteActionsActionToken(user.getId(), user.getEmail(), expiration, actions, result.redirectUri, result.client.getClientId());
 
         try {
             UriBuilder builder = LoginActionsService.actionTokenProcessor(session.getContext().getUri());
             builder.queryParam("key", token.serialize(session, realm, session.getContext().getUri()));
 
             String link = builder.build(realm.getName()).toString();
-            
+
+            this.session.getContext().setClient(result.client);
             this.session.getProvider(EmailTemplateProvider.class)
                     .setAttribute(Constants.TEMPLATE_ATTR_REQUIRED_ACTIONS, token.getRequiredActions())
                     .setAttribute(Constants.IGNORE_ACCEPT_LANGUAGE_HEADER, true)
+                    .setAttribute(Constants.CLIENT_ID, result.client.getClientId())
                     .setRealm(realm)
                     .setUser(user)
                     .sendExecuteActions(link, TimeUnit.SECONDS.toMinutes(result.lifespan));
@@ -1092,7 +1094,7 @@ public class UserResource {
         SendEmailParams result = verifySendEmailParams(redirectUri, clientId, lifespan);
 
         int expiration = Time.currentTime() + result.lifespan;
-        VerifyEmailActionToken token = new VerifyEmailActionToken(user.getId(), expiration, null, user.getEmail(), result.clientId);
+        VerifyEmailActionToken token = new VerifyEmailActionToken(user.getId(), expiration, null, user.getEmail(), result.client.getClientId());
         token.setRedirectUri(result.redirectUri);
 
         String link = LoginActionsService.actionTokenProcessor(session.getContext().getUri())
@@ -1100,8 +1102,10 @@ public class UserResource {
                 .build(realm.getName()).toString();
 
         try {
+            session.getContext().setClient(result.client);
             session
                     .getProvider(EmailTemplateProvider.class)
+                    .setAttribute(Constants.CLIENT_ID, result.client.getClientId())
                     .setRealm(realm)
                     .setUser(user)
                     .sendVerifyEmail(link, TimeUnit.SECONDS.toMinutes(result.lifespan));
@@ -1312,17 +1316,17 @@ public class UserResource {
             lifespan = realm.getActionTokenGeneratedByAdminLifespan();
         }
 
-        return new SendEmailParams(redirectUri, client.getClientId(), lifespan);
+        return new SendEmailParams(redirectUri, client, lifespan);
     }
 
     private static class SendEmailParams {
         final String redirectUri;
-        final String clientId;
+        final ClientModel client;
         final int lifespan;
 
-        public SendEmailParams(String redirectUri, String clientId, Integer lifespan) {
+        public SendEmailParams(String redirectUri, ClientModel client, Integer lifespan) {
             this.redirectUri = redirectUri;
-            this.clientId = clientId;
+            this.client = client;
             this.lifespan = lifespan;
         }
     }

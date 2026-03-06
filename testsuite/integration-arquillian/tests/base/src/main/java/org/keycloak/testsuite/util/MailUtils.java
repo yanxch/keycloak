@@ -47,6 +47,10 @@ public class MailUtils {
         return getPasswordResetEmailLink(new EmailBody(message));
     }
 
+    public static String getBodyAsText(MimeMessage message) throws IOException {
+        return new EmailBody(message).getText();
+    }
+
     /**
      *
      * @param message email message
